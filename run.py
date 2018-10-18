@@ -12,6 +12,7 @@ import sklearn.model_selection as ms
 from sklearn import linear_model
 import sklearn.metrics as sklm
 import itertools
+from utils import show_countplot, plot_confusion_matrix
 
 '''
 Housekeeping tasks.
@@ -32,19 +33,13 @@ Data exploration and preparation.
 '''
 # Understand some basic properties.
 # Dimensions.
-print(train.shape)  
-print(test.shape)
-print(train.head())
-print(train['label'].unique())    # Unique values.
+# print(train.shape)  
+# print(test.shape)
+# print(train.head())
+# print(train['label'].unique())    # Unique values.
 
 # Label (digit) distribution.
-def show_countplot(data, column, title):
-    sns.set(style="darkgrid")
-    count_plot = sns.countplot(x = column, data = data, order = data[column].value_counts().index)
-    plt.title(title)
-    plt.show()
-
-show_countplot(train, 'label', 'Digit distribution')
+# show_countplot(train, 'label', 'Digit distribution')
 
 # Label, feature separation (train set.)
 # scikit-learn requires the input in the form of a numpy array.
@@ -71,57 +66,54 @@ Modelling.
     Error/accuracy plots
 '''
 # Split the train and the validation set for the fitting.
-X_train, X_val, y_train, y_val = ms.train_test_split(X_train, y_train, test_size = 0.2)
+X_train, X_val, y_train, y_val = ms.train_test_split(X_train, y_train, test_size=0.2)
 
-# Fit the model. By default, the one-vs-all method is used.
-logistic_mod = linear_model.LogisticRegression() 
-logistic_mod.fit(X_train, y_train)
+# Perform logistic regression using different values of 
+# the regularization parameter. This will return some 
+# useful parameters and model with the least misclassification error.
+def regularized_logistic_regression(X_train, y_train, X_val, y_val, lambda_inv=[0.1, 1, 10, 100]):
+    logistic_mod_list = []
+    misclassification_errors = []
+
+    for C in lambda_inv:
+        logistic_mod_list.append(linear_model.LogisticRegression(C=C)) 
+        logistic_mod = logistic_mod_list[-1]
+    
+        # Fit the model. By default, the one-vs-all method is used.
+        logistic_mod.fit(X_train, y_train)
+
+        # Perform the prediction on validation set.
+        val_probabilities = logistic_mod.predict_proba(X_val)
+
+        # Since one-vs-all method is used, the index of the max element 
+        # (predicted probability) will be the predicted score.
+        val_scores = val_probabilities.argmax(axis = 1)
+
+        # Compute the confusion matrix.
+        conf_mtx = sklm.confusion_matrix(y_val, val_scores) 
+
+        misclassification_errors.append(1 - sklm.accuracy_score(y_val, val_scores))
+        print('C = %s | Misclassification error = %0.4f' % (C, misclassification_errors[-1]))
+
+    # Compute the index where you have the error is minimum.
+    min_index = misclassification_errors.index(min(misclassification_errors))
+
+    # Compute useful properties to return.
+    least_misclassification_error = misclassification_errors[min_index]
+    opt_lambda_inv = lambda_inv[min_index]
+    logistic_mod = logistic_mod_list[min_index]
+
+    return logistic_mod, least_misclassification_error, opt_lambda_inv, conf_mtx
+
+# Fetch the best logistic regression model.
+logistic_mod, least_misclassification_error, opt_lambda_inv, conf_mtx = \
+regularized_logistic_regression(X_train, y_train, X_val, y_val)
 
 # The order is which the probabilities are arranged is -> [0 1 2 3 4 5 6 7 8 9].
 # print(logistic_mod.classes_)
 
-# Perform the prediction on validation set.
-val_probabilities = logistic_mod.predict_proba(X_val)
-
-# Since one-vs-all method is used, the index of the max element 
-# (predicted probability) will be the predicted score.
-val_scores = val_probabilities.argmax(axis = 1)
-
-# Look at confusion matrix.
-# Reference. https://www.kaggle.com/yassineghouzam/introduction-to-cnn-keras-0-997-top-6
-# This function prints and plots the confusion matrix.
-# Normalization can be applied by setting `normalize=True`.    
-def plot_confusion_matrix(cm, classes,
-                          normalize=False,
-                          title='Confusion matrix',
-                          cmap=plt.cm.Blues):
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
-
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, cm[i, j],
-                 horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
-
-    plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    plt.show()
-
-# Compute the confusion matrix.
-conf_mtx = sklm.confusion_matrix(y_val, val_scores) 
-print('Accuracy  %0.2f' % sklm.accuracy_score(y_val, val_scores))
-
 # Plot the confusion matrix.
-plot_confusion_matrix(conf_mtx, classes = logistic_mod.classes_)   
+# plot_confusion_matrix(conf_mtx, classes = logistic_mod.classes_)   
 
 '''
 Final prediction on test set.
