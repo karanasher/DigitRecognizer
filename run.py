@@ -32,10 +32,10 @@ Data exploration and preparation.
 '''
 # Understand some basic properties.
 # Dimensions.
-# print(train.shape)  
-# print(test.shape)
-# print(train.head())
-# print(train['label'].unique())    # Unique values.
+print(train.shape)  
+print(test.shape)
+print(train.head())
+print(train['label'].unique())    # Unique values.
 
 # Label (digit) distribution.
 def show_countplot(data, column, title):
@@ -44,7 +44,7 @@ def show_countplot(data, column, title):
     plt.title(title)
     plt.show()
 
-# show_countplot(train, 'label', 'Digit distribution')
+show_countplot(train, 'label', 'Digit distribution')
 
 # Label, feature separation (train set.)
 # scikit-learn requires the input in the form of a numpy array.
@@ -88,6 +88,7 @@ val_probabilities = logistic_mod.predict_proba(X_val)
 val_scores = val_probabilities.argmax(axis = 1)
 
 # Look at confusion matrix.
+# Reference. https://www.kaggle.com/yassineghouzam/introduction-to-cnn-keras-0-997-top-6
 # This function prints and plots the confusion matrix.
 # Normalization can be applied by setting `normalize=True`.    
 def plot_confusion_matrix(cm, classes,
@@ -120,7 +121,7 @@ conf_mtx = sklm.confusion_matrix(y_val, val_scores)
 print('Accuracy  %0.2f' % sklm.accuracy_score(y_val, val_scores))
 
 # Plot the confusion matrix.
-# plot_confusion_matrix(conf_mtx, classes = logistic_mod.classes_)   
+plot_confusion_matrix(conf_mtx, classes = logistic_mod.classes_)   
 
 '''
 Final prediction on test set.
