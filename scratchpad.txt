@@ -1,0 +1,81 @@
+# Perform logistic regression using different values of 
+# the regularization parameter. This will return some 
+# useful parameters and model with the least misclassification error.
+def regularized_logistic_regression(X_train, y_train, X_val, y_val, lambda_inv=[0.1, 1, 10]):
+    logistic_mod_list = []
+    misclassification_errors = []
+    conf_mtx = []
+
+    # Iterate of the list of lambda inverses to find the best model.
+    for C in lambda_inv:
+        logistic_mod_list.append(linear_model.LogisticRegression(C=C)) 
+        logistic_mod = logistic_mod_list[-1]
+    
+        # Fit the model. By default, the one-vs-all method is used.
+        logistic_mod.fit(X_train, y_train)
+
+        # Perform the prediction on validation set.
+        val_probabilities = logistic_mod.predict_proba(X_val)
+
+        # Since one-vs-all method is used, the index of the max element 
+        # (predicted probability) will be the predicted score.
+        val_scores = val_probabilities.argmax(axis = 1)
+
+        # Compute the confusion matrix.
+        conf_mtx.append(sklm.confusion_matrix(y_val, val_scores))
+
+        misclassification_errors.append(1 - sklm.accuracy_score(y_val, val_scores))
+        print('C = %s | Misclassification error = %0.4f' % (C, misclassification_errors[-1]))
+
+    # Validation set error plot.
+    plot_misclassification_errors(lambda_inv, misclassification_errors)
+
+    # Compute the index where you have the error is minimum.
+    min_index = misclassification_errors.index(min(misclassification_errors))
+
+    # Compute useful properties to return.
+    least_misclassification_error = misclassification_errors[min_index]
+    opt_lambda_inv = lambda_inv[min_index]
+    logistic_mod = logistic_mod_list[min_index]
+    opt_conf_mtx = conf_mtx[min_index]
+
+    return logistic_mod, least_misclassification_error, opt_lambda_inv, opt_conf_mtx
+
+# Fetch the best logistic regression model.
+# logistic_mod, least_misclassification_error, opt_lambda_inv, opt_conf_mtx = \
+# regularized_logistic_regression(X_train, y_train, X_val, y_val)
+
+# The order is which the probabilities are arranged is -> [0 1 2 3 4 5 6 7 8 9].
+# print(logistic_mod.classes_)
+
+# Plot the confusion matrix.
+# plot_confusion_matrix(opt_conf_mtx, classes = logistic_mod.classes_) 
+
+# test_probabilities = logistic_mod.predict_proba(X_test) 
+
+# Since one-vs-all method is used, the index of the max element 
+# (predicted probability) will be the predicted score.
+# test_scores = test_probabilities.argmax(axis = 1)
+
+# EXP START.
+# Set up possible values of parameters to optimize over
+p_grid = {"C": [0.1, 1, 10]}
+
+# Arrays to store scores
+non_nested_scores = np.zeros(1)
+
+inner_cv = ms.KFold(n_splits=4, shuffle=True)
+outer_cv = ms.KFold(n_splits=4, shuffle=True)
+
+# Non_nested parameter search and scoring.
+clf = ms.GridSearchCV(estimator=linear_model.LogisticRegression(), param_grid=p_grid, cv=inner_cv, scoring='accuracy')
+clf.fit(X_train, y_train)
+non_nested_scores = clf.best_score_
+
+# Nested CV with parameter optimization
+nested_score = ms.cross_val_score(clf, X=X_train, y=y_train, cv=outer_cv)
+
+print(clf.best_params_)
+print(non_nested_scores)
+print(nested_score)
+# EXP END.

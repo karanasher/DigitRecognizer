@@ -1,4 +1,8 @@
 '''
+This file includes all helper functions.
+'''
+
+'''
 All the necessary imports.
 '''
 import pandas as pd
@@ -49,4 +53,12 @@ def plot_confusion_matrix(cm, classes,
     plt.xlabel('Predicted label')
     plt.show()
 
-
+# Plots misclassification_errors (Y-axis) vs. lambda_inv (X-axis.) 
+# This is to visually see the effect of different regularization parameters.
+def plot_misclassification_errors(lambda_inv, misclassification_errors):
+    plt.plot(lambda_inv, misclassification_errors)
+    plt.xlabel('C (lambda_inv)')
+    plt.ylabel('Misclassification error')
+    plt.title('Validation set error plot')
+    plt.xticks(lambda_inv)
+    plt.show()
