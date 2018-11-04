@@ -18,7 +18,7 @@ import sklearn.metrics as sklm
 import itertools
 
 # Label (digit) distribution.
-def show_countplot(data, column, title):
+def show_countplot(data, column, title='Column distribution'):
     sns.set(style="darkgrid")
     count_plot = sns.countplot(x = column, data = data, order = data[column].value_counts().index)
     plt.title(title)
